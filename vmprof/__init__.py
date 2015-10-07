@@ -5,10 +5,10 @@ from . import cli
 
 import _vmprof
 
-from vmprof.reader import read_prof, LibraryData
+from vmprof.reader import read_prof, LibraryData, read_perf
 from vmprof.addrspace import AddressSpace
 from vmprof.stats import Stats
-from vmprof.profiler import Profiler, read_profile
+from vmprof.profiler import Profiler, read_profile, read_profile_bare
 
 
 IS_PYPY = '__pypy__' in sys.builtin_module_names

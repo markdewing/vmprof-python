@@ -38,7 +38,8 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'vmprofshow = vmprof.show:main'
+            'vmprofshow = vmprof.show:main',
+            'vmprofdump = vmprof.dump_stacks:main'
     ]},
     classifiers=[
         'License :: OSI Approved :: BSD License',

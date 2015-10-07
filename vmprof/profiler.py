@@ -3,7 +3,7 @@ import tempfile
 
 from vmprof.addrspace import AddressSpace
 from vmprof.stats import Stats
-from vmprof.reader import read_prof, LibraryData
+from vmprof.reader import read_prof, LibraryData, read_perf
 
 
 class VMProfError(Exception):
@@ -22,13 +22,12 @@ class ProfilerContext(object):
         vmprof.disable()
         self.done = True
 
-
-# lib_cache is global on purpose
-def read_profile(prof_filename, lib_cache={}, extra_libs=None,
-                 virtual_only=True, include_extra_info=True):
+def read_profile_bare(prof_filename, lib_cache={}, extra_libs=None,
+                 virtual_only=True, include_extra_info=True, perf_filename=None):
     prof = open(str(prof_filename), 'rb')
 
     period, profiles, virtual_symbols, libs, interp_name = read_prof(prof)
+
 
     if not virtual_only or include_extra_info:
         exe_name = libs[0].name
@@ -39,6 +38,7 @@ def read_profile(prof_filename, lib_cache={}, extra_libs=None,
             else:
                 lib.read_object_data(executable)
                 lib_cache[lib.name] = lib
+
     libs.append(
         LibraryData(
             '<virtual>',
@@ -47,9 +47,26 @@ def read_profile(prof_filename, lib_cache={}, extra_libs=None,
             True,
             symbols=virtual_symbols)
     )
+
+    jit_sym = None
+    if perf_filename:
+        jit_lib, jit_sym = read_perf(perf_filename)
+        libs.append(jit_lib)
+
     if extra_libs:
         libs += extra_libs
     addrspace = AddressSpace(libs)
+
+    return period, profiles, virtual_symbols, libs, interp_name, addrspace, jit_sym
+
+
+# lib_cache is global on purpose
+def read_profile(prof_filename, lib_cache={}, extra_libs=None,
+                 virtual_only=True, include_extra_info=True, perf_filename=None):
+
+    period, profiles, virtual_symbols, libs, interp_name, addrspace, jit_sym = \
+        read_profile_bare(prof_filename, lib_cache, extra_libs, virtual_only, include_extra_info, perf_filename)
+
     filtered_profiles, addr_set, jit_frames = addrspace.filter_addr(profiles,
         virtual_only, interp_name)
     d = {}

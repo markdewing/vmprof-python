@@ -192,3 +192,25 @@ def read_prof(fileobj, virtual_ips_only=False): #
     if virtual_ips_only:
         return virtual_ips
     return period, profiles, virtual_ips, symmap, interp_name
+
+
+def read_perf(perf_map_name):
+    min_addr = 0xFFFFFFFFFFFFFFFF
+    max_addr = 0
+    symbols = []
+    sym2 = []
+    with open(perf_map_name, 'r') as f:
+        for line in f:
+            start_s, size_s, name_s = line.split(' ',2)
+            name = name_s.strip()
+            start = int(start_s, 16)
+            size = int(size_s, 16)
+
+            min_addr = min(min_addr, start)
+            max_addr = max(max_addr, start+size)
+
+            symbols.append( (start, name))
+            sym2.append( (start, size, name))
+    jit_lib = LibraryData(None, min_addr, max_addr, symbols=symbols)
+    return jit_lib, sym2
+
