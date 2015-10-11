@@ -10,6 +10,8 @@ from vmprof.addrspace import AddressSpace
 from vmprof.stats import Stats
 from vmprof.profiler import Profiler, read_profile, read_profile_bare
 
+from vmprof.tocallgrind import output_callgrind
+
 
 IS_PYPY = '__pypy__' in sys.builtin_module_names
 

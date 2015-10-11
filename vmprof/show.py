@@ -31,7 +31,7 @@ class PrettyPrinter(object):
         self._prune_level = prune_level or 1000
         self._indent = indent or 2
 
-    def show(self, profile):
+    def show(self, profile, perf_filename=''):
         """
         Read and display a vmprof profile file.
 
@@ -39,7 +39,7 @@ class PrettyPrinter(object):
         :type profile: str
         """
         try:
-            stats = vmprof.read_profile(profile, virtual_only=True, include_extra_info=True)
+            stats = vmprof.read_profile(profile, virtual_only=True, include_extra_info=True, perf_filename=perf_filename)
         except Exception as e:
             print("Fatal: could not read vmprof profile file '{}': {}".format(profile, e))
             return
@@ -108,9 +108,10 @@ class PrettyPrinter(object):
 @click.option('--prune_percent', type=float, default=0, help='The indention per level within the call graph.')
 @click.option('--prune_level', type=int, default=None, help='Prune output of a profile stats node when CPU.')
 @click.option('--indent', type=int, default=2, help='The indention per level within the call graph.')
-def main(profile, prune_percent, prune_level, indent):
+@click.option('--perf', type=str, default='', help='Perf map file')
+def main(profile, prune_percent, prune_level, indent, perf):
     pp = PrettyPrinter(prune_percent=prune_percent, prune_level=prune_level, indent=indent)
-    pp.show(profile)
+    pp.show(profile, perf_filename=perf)
 
 
 if __name__ == '__main__':

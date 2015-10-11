@@ -114,7 +114,7 @@ void vmprof_ignore_signals(int ignored)
  * *************************************************************
  */
 
-#define MAX_FUNC_NAME 128
+#define MAX_FUNC_NAME 512
 #define MAX_STACK_DEPTH   \
     ((SINGLE_BUF_SIZE - sizeof(struct prof_stacktrace_s)) / sizeof(void *))
 
