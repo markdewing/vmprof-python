@@ -104,7 +104,7 @@ def do_all(prof_filename, perf_filename):
             name, is_virtual, lib, offset = vmprof.dump_stacks.resolve_entry(entry, addrspace, jit_sym)
 
             key = get_key(name, lib)
-            callee_key = get_key(callee_name, lib)
+            callee_key = get_key(callee_name, callee_lib)
 
             prof_accum[key].callees[callee_key] += 1
             if idx == 0:
