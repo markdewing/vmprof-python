@@ -27,7 +27,7 @@ def get_key(s, lib):
         key = ('<Python>', filename, '%s %s:%s'%(func, filename, line))
     else:
         func = s
-        obj = '<JIT>'
+        obj = '<unknown>'
         if lib:
             obj = lib.name
         key = (obj, '<unknown>', func)
@@ -82,21 +82,21 @@ def print_callgrind_format(accum, output_filename=None):
             if cfilename:
                 print('cfl=%s'%cfilename, file=f)
             print('cfn=%s'%cfunc, file=f)
-            #print('calls=%d %d'%(count, 0), file=f)  
+            #print('calls=%d %d'%(count, 0), file=f)
             print('calls=%d %d'%(0, 0), file=f)
             # use inclusive time for count
             print('%d %d'%(line, count), file=f)
 
         print('', file=f)
 
-def do_all(prof_filename, perf_filename):
+def do_all(prof_filename, perf_filename, remove_numba_dispatch):
     period, profiles, virtual_symbols, libs, interp_name, addrspace, jit_sym = \
         vmprof.read_profile_bare(prof_filename, perf_filename=perf_filename)
 
     prof_accum = collections.defaultdict(FunctionNode)
 
     for idx, profile in enumerate(profiles):
-        stack = vmprof.dump_stacks.compress_stack(profile[0], addrspace, jit_sym)
+        stack = vmprof.dump_stacks.compress_stack(profile[0], addrspace, jit_sym, remove_numba_dispatch)
         for idx in range(len(stack)-1):
             callee_entry = stack[idx]
             entry = stack[idx+1]
@@ -113,16 +113,17 @@ def do_all(prof_filename, perf_filename):
     return prof_accum
 
 
-def output_callgrind(prof_filename, perf_filename, output_filename=None):
-    accum = do_all(prof_filename, perf_filename)
+def output_callgrind(prof_filename, perf_filename, output_filename=None, remove_numba_dispatch=False):
+    accum = do_all(prof_filename, perf_filename, remove_numba_dispatch)
     print_callgrind_format(accum, output_filename)
 
 @click.command()
 @click.argument('profile', type=str)
 @click.option('--output',type=str, default=None, help='Output file name')
 @click.option('--perf',type=str, default=None, help='Perf map file')
-def main(profile, output, perf):
-    output_callgrind(profile, perf, output)
+@click.option('--remove-numba-dispatch', is_flag=True, help='Remove Numba Dispatcher_call for clearer call graphs')
+def main(profile, output, perf, remove_numba_dispatch):
+    output_callgrind(profile, perf, output, remove_numba_dispatch)
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import click
 import vmprof
 
-def compress_stack(stack, addrspace, jit_sym):
+def compress_stack(stack, addrspace, jit_sym, remove_numba_dispatch=False):
     new_stack = []
     idx = 0
     stop_stack = False
@@ -18,7 +18,17 @@ def compress_stack(stack, addrspace, jit_sym):
             if next_name == name and lib == next_lib:
                 idx += 1
                 continue
-            
+
+        # For Numba - remove Dispatcher_call from stack to give better logical view of code
+        if remove_numba_dispatch and name == 'Dispatcher_call':
+            if idx > 1:
+                prev_entry = stack[idx-1]
+                prev_name, prev_is_virtual, prev_lib, prev_offset = resolve_entry(prev_entry, addrspace, jit_sym)
+                if prev_lib and prev_lib.name == '<JIT>':
+                    idx += 1
+                    continue
+
+
         lib_path = []
         if lib and lib.name:
             lib_path = lib.name.split('/')
@@ -46,22 +56,30 @@ def compress_stack(stack, addrspace, jit_sym):
 
 def dump_stack(stack, virtual_ips, libs, addrspace, jit_sym):
     for idx,entry in enumerate(stack):
-        name, addr, is_virtual, lib = addrspace.lookup(entry)
-        if not lib and idx != len(stack)-1:
+        name, lib_addr, is_virtual, lib = addrspace.lookup(entry)
+        if lib and lib.name == '<JIT>':
             if jit_sym:
-                name, offset = find_jit_sym(jit_sym, addr)
+                name, offset = find_jit_sym(jit_sym, entry)
                 if name:
-                    print ('JIT: (offset = %s)'%hex(offset),end="")
-            else:
-                print ('MISSING SYM:',end="")
+                    print ('JIT: (offset = %s)'%hex(offset), end="")
+                else:
+                    print ('MISSING SYM:', end="")
+        if not lib:
+            print ('UNKNOWN LIB:', end="")
         print (hex(entry),name, is_virtual, lib)
 
 def resolve_entry(entry, addrspace, jit_sym):
-    name, addr, is_virtual, lib = addrspace.lookup(entry)
+    name, lib_addr, is_virtual, lib = addrspace.lookup(entry)
     offset = 0
     if not lib:
         if jit_sym:
-            name, offset = find_jit_sym(jit_sym, addr)
+            name1, offset = find_jit_sym(jit_sym, entry)
+            if name1:
+                print("library lookup failed, but JIT sym succeeded",name1,hex(entry))
+
+    if lib == '<JIT>':
+        if jit_sym:
+            name, offset = find_jit_sym(jit_sym, entry)
     return name, is_virtual, lib, offset
 
 def find_jit_sym(jit_sym, addr):

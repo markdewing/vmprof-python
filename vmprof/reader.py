@@ -211,6 +211,8 @@ def read_perf(perf_map_name):
 
             symbols.append( (start, name))
             sym2.append( (start, size, name))
-    jit_lib = LibraryData(None, min_addr, max_addr, symbols=symbols)
+    
+    symbols.sort()
+    jit_lib = LibraryData('<JIT>', min_addr, max_addr, symbols=symbols)
     return jit_lib, sym2
 
