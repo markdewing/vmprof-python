@@ -31,8 +31,11 @@ def main():
 
     new_map_file = "perf-%d.map"%p.pid
     map_file = "/tmp/%s"%new_map_file
+    is_numba = False
     if os.path.exists(map_file):
         shutil.move(map_file, new_map_file)
+        # if map file exists, assume that we are running under Numba
+        is_numba = True
     else:
         new_map_file = None
 
@@ -49,7 +52,7 @@ def main():
     else:
         output_file = "vmprof-%d.out"%p.pid
 
-    vmprof.tocallgrind.output_callgrind(new_vmprof_output_file, new_map_file, output_file)
+    vmprof.tocallgrind.output_callgrind(new_vmprof_output_file, new_map_file, output_file, remove_numba_dispatch=is_numba)
 
 
 if __name__ == '__main__':
