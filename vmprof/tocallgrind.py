@@ -6,6 +6,7 @@ import vmprof.dump_stacks
 
 import click
 import collections
+import six
 import sys
 
 class FunctionNode(object):
@@ -44,14 +45,14 @@ def print_callgrind_format(accum, output_filename=None):
     print("", file=f)
     print("events: Ticks", file=f)
     total = 0
-    for func_node in accum.itervalues():
+    for func_node in six.itervalues(accum):
         total += func_node.count
 
     print("summary: %d"%total, file=f)
     print("", file=f)
-    for call_key, func_node in accum.iteritems():
+    for call_key, func_node in six.iteritems(accum):
         func_total = func_node.count
-        for count in func_node.callees.itervalues():
+        for count in six.itervalues(func_node.callees):
             func_total += count
 
         obj = call_key[0]
@@ -65,7 +66,7 @@ def print_callgrind_format(accum, output_filename=None):
         line = 0
         print('%d %d'%(line, func_node.count), file=f)  # exclusive (self) time for count
 
-        for callee_key, count in func_node.callees.iteritems():
+        for callee_key, count in six.iteritems(func_node.callees):
             cobj = callee_key[0]
             cfilename = callee_key[1]
             cfunc = callee_key[2]

@@ -10,8 +10,20 @@ def compress_stack(stack, addrspace, jit_sym):
     while idx < len(stack):
         entry = stack[idx]
         name, is_virtual, lib, offset = resolve_entry(entry, addrspace, jit_sym)
+
+        # bottom item is often duplicated.  Remove that.
+        if idx == 0 and len(stack) > 1:
+            next_entry = stack[idx+1]
+            next_name, next_is_virtual, next_lib, next_offset = resolve_entry(next_entry, addrspace, jit_sym)
+            if next_name == name and lib == next_lib:
+                idx += 1
+                continue
+            
+        lib_path = []
+        if lib and lib.name:
+            lib_path = lib.name.split('/')
         # Skip entries in the Python runtime, but only if there is a virtual IP (Python code location) above them
-        if lib and lib.name and lib.name.endswith('libpython2.7.so.1.0'):
+        if lib_path and 'libpython' in lib_path[-1]:
             for tmp_idx in range(idx, len(stack)):
                 tmp_entry = stack[tmp_idx]
                 name, is_virtual, lib, offset = resolve_entry(tmp_entry, addrspace, jit_sym)
