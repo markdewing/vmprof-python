@@ -1,0 +1,42 @@
+from __future__ import absolute_import, print_function
+
+import click
+import vmprof
+
+# Dump profile stacks.  Useful for debugging.
+
+def dump_stack(stack, libs, addrspace):
+    for idx,entry in enumerate(stack):
+        if isinstance(entry, int):
+            addr = entry
+        else:
+            addr = entry.addr
+        name, lib_addr, is_virtual, lib = addrspace.lookup(addr)
+        print (hex(addr), name, lib)
+
+
+def dump_stacks(prof_filename, do_raw=False):
+    lib_cache = dict()
+    period, profiles, virtual_symbols, libs, interp_name, addrspace = vmprof.profiler.read_profile_raw(prof_filename, lib_cache)
+    if not do_raw:
+        profiles, _, _ = vmprof.profiler.process_stacks(profiles, addrspace, interp_name, virtual_only=False)
+
+    print("Interpreter: %s  Period: %d\n"%(interp_name, period))
+    idx = 0
+    for sample in profiles:
+        print("Sample %d, Thread id %s"%(idx, hex(sample[2])))
+        stack = sample[0]
+        dump_stack(stack, libs, addrspace)
+        print("\n")
+        idx += 1
+
+  
+@click.command()
+@click.argument('profile', type=str)
+@click.option('--raw', is_flag=True, help='No filtering of stacks')
+def main(profile, raw):
+    dump_stacks(profile, do_raw=raw)
+
+if __name__ == '__main__':
+    main()
+

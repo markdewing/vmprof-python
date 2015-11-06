@@ -23,8 +23,7 @@ class ProfilerContext(object):
         self.done = True
 
 
-# lib_cache is global on purpose
-def read_profile(prof_filename, lib_cache={}, extra_libs=None,
+def read_profile_raw(prof_filename, lib_cache, extra_libs=None,
                  virtual_only=True, include_extra_info=True):
     prof = open(str(prof_filename), 'rb')
 
@@ -53,16 +52,42 @@ def read_profile(prof_filename, lib_cache={}, extra_libs=None,
     if extra_libs:
         libs += extra_libs
     addrspace = AddressSpace(libs)
+
+    return period, profiles, virtual_symbols, libs, interp_name, addrspace
+
+
+def process_stacks(profiles, addrspace, interp_name, virtual_only, include_extra_info=True):
+    addr_dict = {}
     filtered_profiles, addr_set, jit_frames = addrspace.filter_addr(profiles,
         virtual_only, interp_name)
-    d = {}
+
     for addr in addr_set:
         name, _, _, lib = addrspace.lookup(addr)
         if lib is None:
             name = 'jit:' + name
-        d[addr] = name
+        addr_dict[addr] = name
+
     if include_extra_info:
-        d.update(addrspace.meta_data)
+        addr_dict.update(addrspace.meta_data)
+
+    return filtered_profiles, addr_dict, jit_frames
+
+
+def read_profile_stacks(prof_filename, lib_cache, extra_libs=None,
+                 virtual_only=True, include_extra_info=True):
+
+    period, profiles, virtual_symbols, libs, interp_name, addrspace = read_profile_raw(prof_filename, lib_cache, extra_libs, virtual_only, include_extra_info)
+
+    filtered_profiles, addr_dict, jit_frames = process_stacks(profiles, addrspace, interp_name, virtual_only, include_extra_info)
+
+    return filtered_profiles, addr_dict, jit_frames, interp_name
+
+
+# lib_cache is global on purpose
+def read_profile(prof_filename, lib_cache={}, extra_libs=None,
+                 virtual_only=True, include_extra_info=True):
+    filtered_profiles, d, jit_frames, interp_name = read_profile_stacks(prof_filename, lib_cache, extra_libs, virtual_only, include_extra_info)
+
     s = Stats(filtered_profiles, d, jit_frames, interp_name)
     return s
 
