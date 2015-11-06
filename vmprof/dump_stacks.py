@@ -15,9 +15,14 @@ def dump_stack(stack, libs, addrspace):
         print (hex(addr), name, lib)
 
 
-def dump_stacks(prof_filename, do_raw=False):
+def dump_stacks(prof_filename, do_raw=False, perf_file=''):
+    extra_libs = []
+    if perf_file:
+        jit_lib = vmprof.reader.read_perf(perf_file)
+        extra_libs = [jit_lib]
+
     lib_cache = dict()
-    period, profiles, virtual_symbols, libs, interp_name, addrspace = vmprof.profiler.read_profile_raw(prof_filename, lib_cache)
+    period, profiles, virtual_symbols, libs, interp_name, addrspace = vmprof.profiler.read_profile_raw(prof_filename, lib_cache, extra_libs=extra_libs)
     if not do_raw:
         profiles, _, _ = vmprof.profiler.process_stacks(profiles, addrspace, interp_name, virtual_only=False)
 
@@ -34,8 +39,9 @@ def dump_stacks(prof_filename, do_raw=False):
 @click.command()
 @click.argument('profile', type=str)
 @click.option('--raw', is_flag=True, help='No filtering of stacks')
-def main(profile, raw):
-    dump_stacks(profile, do_raw=raw)
+@click.option('--perf', type=str, default='', help='Specify perf map file.')
+def main(profile, raw, perf):
+    dump_stacks(profile, do_raw=raw, perf_file=perf)
 
 if __name__ == '__main__':
     main()

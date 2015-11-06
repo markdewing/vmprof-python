@@ -31,7 +31,7 @@ class PrettyPrinter(object):
         self._prune_level = prune_level or 1000
         self._indent = indent or 2
 
-    def show(self, profile, virtual_only):
+    def show(self, profile, virtual_only, perf_file=''):
         """
         Read and display a vmprof profile file.
 
@@ -39,9 +39,20 @@ class PrettyPrinter(object):
         :type profile: str
         :param virtual_only: Display only Python frames
         :type profile: bool
+        :param perf_file: Perf map file
+        :type perf_file: str
         """
+
+        extra_libs = []
+        if perf_file:
+            try:
+                jit_lib = vmprof.reader.read_perf(perf_file)
+                extra_libs = [jit_lib]
+            except Exception as e:
+                print("Warning: could not read perf map file '{}': {}".format(perf_file, e))
+
         try:
-            stats = vmprof.read_profile(profile, virtual_only=virtual_only, include_extra_info=True)
+            stats = vmprof.read_profile(profile, virtual_only=virtual_only, include_extra_info=True, extra_libs=extra_libs)
         except Exception as e:
             print("Fatal: could not read vmprof profile file '{}': {}".format(profile, e))
             return
@@ -93,8 +104,10 @@ class PrettyPrinter(object):
                     p3 = click.style(funname, fg='white', bold=False)
                     p5 = click.style("{:>2}".format(level), fg='red', bold=False)
 
-                elif parts == 0:   
-                    # Native code frame
+                elif parts == 0 or parts == 2:   
+                    # Native code frame (parts == 0)
+                    # unknown frame with name jit:<addr>:[heap] (parts == 2)
+                    #  handle it here to keep from raising the exception
                     funname = node.name
                     p2 = click.style(funname, fg='green', bold=True)
                     p2b = click.style(('.' * level * self._indent), fg='green', bold=False)
@@ -118,9 +131,10 @@ class PrettyPrinter(object):
 @click.option('--prune_level', type=int, default=None, help='Prune output of a profile stats node when CPU.')
 @click.option('--indent', type=int, default=2, help='The indention per level within the call graph.')
 @click.option('--python_only', is_flag=True, help='Show only Python frames.')
-def main(profile, prune_percent, prune_level, indent, python_only):
+@click.option('--perf', type=str, default='', help='Specify perf map file.')
+def main(profile, prune_percent, prune_level, indent, python_only, perf):
     pp = PrettyPrinter(prune_percent=prune_percent, prune_level=prune_level, indent=indent)
-    pp.show(profile, virtual_only=python_only)
+    pp.show(profile, virtual_only=python_only, perf_file=perf)
 
 
 if __name__ == '__main__':

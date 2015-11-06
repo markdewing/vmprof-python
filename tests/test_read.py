@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from vmprof.reader import read_ranges, read_prof, LibraryData
+from vmprof.reader import read_ranges, read_prof, LibraryData, read_perf
 from vmprof.addrspace import AddressSpace
 
 RANGES = """0400000-005a1000 r-xp 00000000 08:01 5389781                            /home/fijal/.virtualenvs/cffi3/bin/python
@@ -83,3 +83,18 @@ def test_read_profile(here):
     name, start_addr, is_virtual, _ = addrspace.lookup(sym_dict['py:<module>:2:x.py'])
     assert name == 'py:<module>:2:x.py'
     assert is_virtual
+
+
+def test_read_perf(here):
+    perf_path = os.path.join(here, 'perf.map')
+    jit_lib = read_perf(perf_path)
+
+    addrspace = AddressSpace([jit_lib])
+
+    name, start_addr, is_virtual, lib = addrspace.lookup(0x7f48d15c5002)
+
+    assert name == "linkcell.getBoxFromTuple$1.pyobject.pyobject.pyobject.pyobject"
+    assert start_addr == 0x7f48d15c5000
+    assert not is_virtual
+    assert lib.name == "<JIT>"
+

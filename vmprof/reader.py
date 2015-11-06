@@ -195,3 +195,27 @@ def read_prof(fileobj, virtual_ips_only=False): #
     if virtual_ips_only:
         return virtual_ips
     return period, profiles, virtual_ips, symmap, interp_name
+
+
+def read_perf(perf_map_name):
+    """Read Linux perf map files for describing JIT function addresses"""
+    min_addr = 0xFFFFFFFFFFFFFFFF
+    max_addr = 0
+    symbols = []
+    with open(perf_map_name, 'r') as f:
+        for line in f:
+            start_s, size_s, name_s = line.split(' ',2)
+            name = name_s.strip()
+            start = int(start_s, 16)
+            size = int(size_s, 16)
+
+            min_addr = min(min_addr, start)
+            max_addr = max(max_addr, start+size)
+
+            # might want to keep track of end (start+size) since
+            # the functions don't completely fill the address space.
+            symbols.append( (start, name))
+
+    symbols.sort()
+    jit_lib = LibraryData('<JIT>', min_addr, max_addr, symbols=symbols)
+    return jit_lib
