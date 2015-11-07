@@ -91,6 +91,8 @@ class AddressSpace(object):
             for key in keys:
                 self.meta_data[key] = v
 
+        self._show_infrastructure_frames = True
+
     def lookup(self, arg):
         addr = arg + 1
         i = bisect.bisect(self.lib_lookup, addr)
@@ -127,6 +129,32 @@ class AddressSpace(object):
                 filtered_profiles.append((current, prof[1]))
         return filtered_profiles
 
+    def show_infrastructure_frames(self, show=True):
+        self._show_infrastructure_frames = show
+
+    # Remove some 'infrastructure' frames that confuse the
+    #  stack profile (especially when converting to kcachegrind format)
+    def keep_frame(self, name, lib):
+        if self._show_infrastructure_frames:
+            return True
+
+        lib_path = []
+        if lib and lib.name:
+            lib_path = lib.name.split('/')
+
+        if lib_path and '_ctypes.so' in lib_path[-1]:
+            return False
+
+        # For Numba
+        if lib_path and '_dispatcher.so' in lib_path[-1]:
+            return False
+
+        # For PyPy
+        if lib_path and 'libpypy-c.so' in lib_path[-1]:
+            return False
+
+        return True
+
     def _filter_stack(self, lst, jit_frames, addr_set, interp_name,
                       only_virtual):
         current = []
@@ -152,6 +180,9 @@ class AddressSpace(object):
 
             if addr in self.meta_data:
                 current.append(self.meta_data[addr](addr))
+                continue
+
+            if not self.keep_frame(name, lib):
                 continue
 
             cls = None
