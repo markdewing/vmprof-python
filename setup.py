@@ -40,6 +40,7 @@ setup(
         'console_scripts': [
             'vmprofshow = vmprof.show:main',
             'vmprofdump = vmprof.dump_stacks:main',
+            'vmprofrun = vmprof.run:main',
             'vmproftocallgrind = vmprof.tocallgrind:main'
     ]},
     classifiers=[
